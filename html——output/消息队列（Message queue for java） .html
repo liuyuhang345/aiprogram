@@ -1,0 +1,690 @@
+<!doctype html>
+<html>
+<head>
+<meta charset='UTF-8'><meta name='viewport' content='width=device-width initial-scale=1'>
+<title>消息队列（Message queue for java） </title></head>
+<body><p>&nbsp;</p>
+<p>&nbsp;</p>
+<h1>RabbitMQ消息队列（Message queue）教程</h1>
+<p>刘宇航  tel : 13552727378 Email :  <a href='mailto:liuyuhang345@163.com' target='_blank' class='url'>liuyuhang345@163.com</a></p>
+<hr>
+## 1. 消息队列概念
+<p>动画小故事引入队列概念......</p>
+<p><img src="image-20200328080833731.png" referrerpolicy="no-referrer" alt="image-20200328080833731"></p>
+<p>&nbsp;</p>
+<ul>
+<li><p>消息</p>
+<ul>
+<li>任何信息</li>
+<li>内存映像</li>
+<li>任何数据结构的数据对象</li>
+
+</ul>
+</li>
+<li><p>存储</p>
+<ul>
+<li><p>内存  状态为 transient</p>
+</li>
+<li><p>磁盘  状态为durable</p>
+<blockquote><p>	In the vast majority of cases you want all your nodes to be disk nodes; RAM nodes are a special case that can be used to improve the performance clusters with high queue, exchange, or binding churn. RAM nodes do not provide higher message rates. When in doubt, use disk nodes only.</p>
+<p>上述是官网的一段叙述，意思是说，RAM节点并不会提供更好的性能，使用磁盘几点就好了。</p>
+</blockquote>
+</li>
+
+</ul>
+</li>
+<li><p>队列（FIFO）</p>
+<ul>
+<li>传统队列（classic）</li>
+<li>仲裁队列（quorum）</li>
+
+</ul>
+</li>
+<li><p>度量参数</p>
+<ul>
+<li>数量</li>
+<li>长度</li>
+<li>生命周期</li>
+
+</ul>
+</li>
+
+</ul>
+<h2>2. 消息队列使用场景</h2>
+<ul>
+<li><p>异步数据交换（非实时系统）</p>
+<ul>
+<li>聊天程序</li>
+
+</ul>
+</li>
+<li><p>突发性的高并发</p>
+<ul>
+<li>交通银行核心业务（容峰）</li>
+
+</ul>
+</li>
+<li><p>计数</p>
+<ul>
+<li>网上报名，前三名7折，10名内8折,...（丢弃）</li>
+
+</ul>
+</li>
+<li><p>模块解耦</p>
+<ul>
+<li>规定接口协议实现模块间调用（程序间隔离）</li>
+
+</ul>
+</li>
+<li><p>并发（并行与串行互转）</p>
+<ul>
+<li>下单后的日志、改库存、发送手机通知</li>
+
+</ul>
+</li>
+<li><p>RPC</p>
+</li>
+<li><p>生存周期管理</p>
+<ul>
+<li>下订单48小时不付款，则丢弃。新消息都被顶上了一块秒表。</li>
+
+</ul>
+</li>
+
+</ul>
+<h2>3. 消息队列产品</h2>
+<ul>
+<li><p>产品列表</p>
+<ul>
+<li>MSMQ</li>
+<li>ActiveMQ</li>
+<li><strong>RabbitMQ</strong></li>
+<li>ZeroMQ</li>
+
+</ul>
+</li>
+
+</ul>
+<h2>4. RabbitMQ简介</h2>
+<ul>
+<li><p><a href='https://www.rabbitmq.com'>Rabbitmq官网</a></p>
+</li>
+<li><p>定义</p>
+<p>RabbitMQ是实现高级消息队列协议（AMQP）的开源消息代理软件（有时称为面向消息的中间件）。RabbitMQ服务器使用Erlang编程语言编写，并基于Open Telecom Platform框架构建，用于集群和故障转移。与代理接口的客户端库适用于所有主要编程语言。</p>
+</li>
+<li><p>版本与安装</p>
+<p><img src="rbtwebsite.png" referrerpolicy="no-referrer" alt="版本 3.8.3"></p>
+<ul>
+<li><p>单点安装</p>
+<ul>
+<li><p>window安装</p>
+</li>
+<li><p>linux安装</p>
+</li>
+<li><p><strong>docker镜像</strong></p>
+<ul>
+<li>docker pull rabbitmq:3-management</li>
+
+</ul>
+</li>
+
+</ul>
+</li>
+<li><p>集群安装与配置</p>
+<blockquote><p>详见 章节“ 6. ”</p>
+</blockquote>
+</li>
+
+</ul>
+</li>
+
+</ul>
+<h2>5. Rabbitmq 应用</h2>
+<p>&nbsp;</p>
+<h3>5.1 GUI 操作界面 </h3>
+<p>RabbitMQ软件的基于web的GUI操作界面，能够完成消息队列的绝大多数操作。</p>
+<p>使用，熟悉rabbitMQ的如下概念。</p>
+<ul>
+<li><p>主机</p>
+</li>
+<li><p>交换机</p>
+</li>
+<li><p>队列</p>
+</li>
+<li><p>routing key</p>
+</li>
+<li><p>发送消息</p>
+</li>
+<li><p>接收消息</p>
+</li>
+<li><p>ACK与NACK</p>
+</li>
+<li><p>持久化</p>
+</li>
+<li><p>队列参数</p>
+<ul>
+<li>超时</li>
+<li>长度</li>
+
+</ul>
+<p>	</p>
+</li>
+
+</ul>
+<h3>5.2 开发者接口 Developer interface</h3>
+<p>		<em>提问：有最终客户调用方式吗？</em></p>
+<ul>
+<li><p><strong>ClientLIB   C/S</strong></p>
+<ul>
+<li>pika   <strong>python</strong></li>
+<li>maven的 groupId=com.rabbitmq和artifactId=amqp-client  <strong>java</strong></li>
+
+</ul>
+</li>
+<li><p>HTTP  API</p>
+</li>
+<li><p>AJAX  API</p>
+</li>
+
+</ul>
+<h3>5.3 Python或java编程实战</h3>
+<p>		 <em>注：编程而言，集群和单点的API并无区别。</em></p>
+<ul>
+<li><a href='https://www.rabbitmq.com/getstarted.html'>参考文档</a></li>
+
+</ul>
+<h4>5.3.0 开发环境</h4>
+<ul>
+<li>python，java</li>
+<li><img src="image-20200317103535403.png" referrerpolicy="no-referrer" alt="image-20200317103535403"></li>
+
+</ul>
+<h4>5.3.1 Hello world</h4>
+<ul>
+<li><p>离线聊天</p>
+<blockquote><p>	<img src="image-20200315224321292.png" referrerpolicy="no-referrer" alt="image-20200315224321292"></p>
+</blockquote>
+<ul>
+<li><p>下载python客户端库：python -m pip install pika --upgrade</p>
+</li>
+<li><p>P</p>
+<p>&nbsp;</p>
+</li>
+
+</ul>
+<pre><code class='language-python' lang='python'>#!/usr/bin/env python
+#!pip install pika --upgrade
+import pika
+
+connection = pika.BlockingConnection(pika.ConnectionParameters(&#39;localhost&#39;))
+channel = connection.channel()
+</code></pre>
+<pre><code class='language-python' lang='python'>channel.queue_declare(queue=&#39;hello&#39;)
+</code></pre>
+<pre><code class='language-python' lang='python'>channel.basic_publish(exchange=&#39;&#39;,
+                      routing_key=&#39;hello&#39;,
+                      body=&#39;Hello World!&#39;)
+print(&quot; [x] Sent &#39;Hello World!&#39;&quot;)
+</code></pre>
+<pre><code class='language-python' lang='python'>connection.close()
+</code></pre>
+<p>&nbsp;</p>
+<ul>
+<li><p>C</p>
+<p>程序的开头和结尾与P相同</p>
+</li>
+
+</ul>
+<pre><code class='language-python' lang='python'>channel.queue_declare(queue=&#39;hello&#39;)
+</code></pre>
+<pre><code class='language-python' lang='python'>def callback(ch, method, properties, body):
+    print(&quot; [x] Received %r&quot; % body)
+</code></pre>
+<pre><code class='language-python' lang='python'>channel.basic_consume(queue=&#39;hello&#39;,
+                      auto_ack=True,
+                      on_message_callback=callback)
+</code></pre>
+<pre><code class='language-python' lang='python'>print(&#39; [*] Waiting for messages. To exit press CTRL+C&#39;)
+channel.start_consuming()
+</code></pre>
+</li>
+
+</ul>
+<p>&nbsp;</p>
+<h4>5.3.2 任务分配  Work queues</h4>
+<ul>
+<li><p>发票打印</p>
+<ul>
+<li><img src="image-20200315224149551.png" referrerpolicy="no-referrer" alt="image-20200315224149551"></li>
+<li>单个队列，10台打印机，对应10个消费者</li>
+<li>编程同5.3.1，C程序启动多个进程而已</li>
+
+</ul>
+</li>
+
+</ul>
+<h4>5.3.3 发布订阅 Publish / Subscribe</h4>
+<ul>
+<li><p>订单的非实时业务逻辑</p>
+<ul>
+<li><img src="image-20200315224603021.png" referrerpolicy="no-referrer" alt="image-20200315224603021"></li>
+<li>多个队列，缓存多个非实时业务类型的数据：日志、通知、对账</li>
+<li>前一个离线聊天，最终可能需要数量较多的队列</li>
+
+</ul>
+<pre><code class='language-python' lang='python'>channel.basic_publish(exchange=&#39;logs&#39;,
+                      routing_key=&#39;&#39;,
+                      body=message)
+#通过exchange定位消息到达的队列，不指定具体队列和rkey
+</code></pre>
+</li>
+<li><p>临时队列</p>
+<blockquote><p>只能P或C一端创建，另一端通过交换机和路由器进行读写操作。</p>
+</blockquote>
+<pre><code class='language-python' lang='python'>result = channel.queue_declare(queue=&#39;&#39;) &#39;&#39;&#39;随机给定队列名字&#39;&#39;&#39;
+</code></pre>
+<pre><code class='language-python' lang='python'>result = channel.queue_declare(queue=&#39;&#39;, exclusive=True) &#39;&#39;&#39;独立使用，关闭连接则删除&#39;&#39;&#39;
+</code></pre>
+<pre><code class='language-python' lang='python'>channel.queue_bind(exchange=&#39;logs&#39;,
+                   queue=result.method.queue) &#39;&#39;&#39;临时队列 bind to exchange&#39;&#39;&#39;
+</code></pre>
+</li>
+<li><p>扇形交换机收发代码</p>
+<blockquote><pre><code class='language-python' lang='python'>#!/usr/bin/env python
+#发送信息到交换机，本例体现交换机的作用
+import pika
+import sys
+
+connection = pika.BlockingConnection(
+ pika.ConnectionParameters(host=&#39;localhost&#39;))
+channel = connection.channel()
+
+channel.exchange_declare(exchange=&#39;logs&#39;, exchange_type=&#39;fanout&#39;)
+
+message = &#39; &#39;.join(sys.argv[1:]) or &quot;info: Hello World!&quot;
+channel.basic_publish(exchange=&#39;logs&#39;, routing_key=&#39;&#39;, body=message)
+print(&quot; [x] Sent %r&quot; % message)
+connection.close()
+</code></pre>
+</blockquote>
+<blockquote><pre><code class='language-python' lang='python'>#!/usr/bin/env python
+#接受信息，本例强调交换机的作用，淡化队列的作用
+import pika
+
+connection = pika.BlockingConnection(
+ pika.ConnectionParameters(host=&#39;localhost&#39;))
+channel = connection.channel()
+
+channel.exchange_declare(exchange=&#39;logs&#39;, exchange_type=&#39;fanout&#39;)
+
+result = channel.queue_declare(queue=&#39;&#39;, exclusive=True)
+queue_name = result.method.queue
+
+channel.queue_bind(exchange=&#39;logs&#39;, queue=queue_name)
+
+print(&#39; [*] Waiting for logs. To exit press CTRL+C&#39;)
+
+def callback(ch, method, properties, body):
+ print(&quot; [x] %r&quot; % body)
+
+channel.basic_consume(
+ queue=queue_name, on_message_callback=callback, auto_ack=True)
+
+channel.start_consuming()
+</code></pre>
+</blockquote>
+</li>
+
+</ul>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h4>5.3.4 消息路由 Routing</h4>
+<ul>
+<li><p>系统异常监控</p>
+<ul>
+<li>网银交易系统（小五、小刘开发），需完成：web页面显示info、warning、error（张三开发）；紧急短信和电话通知管理员并持久化error（李四开发）</li>
+<li><img src="image-20200315225719986.png" referrerpolicy="no-referrer" alt="image-20200315225719986"></li>
+<li>使用direct交换机，合法的routing key是一个或多个单词 </li>
+
+</ul>
+</li>
+
+</ul>
+<blockquote><pre><code class='language-python' lang='python'>#发送消息
+#!/usr/bin/env python
+import pika
+import sys
+
+connection = pika.BlockingConnection(
+ pika.ConnectionParameters(host=&#39;localhost&#39;))
+channel = connection.channel()
+
+channel.exchange_declare(exchange=&#39;direct_logs&#39;, exchange_type=&#39;direct&#39;)
+
+severity = sys.argv[1] if len(sys.argv) &gt; 1 else &#39;info&#39; &#39;&#39;&#39;参数info\error\warning&#39;&#39;&#39;
+message = &#39; &#39;.join(sys.argv[2:]) or &#39;Hello World!&#39;
+channel.basic_publish(
+ exchange=&#39;direct_logs&#39;, routing_key=severity, body=message)
+print(&quot; [x] Sent %r:%r&quot; % (severity, message))
+connection.close()
+</code></pre>
+</blockquote>
+<p>&nbsp;</p>
+<blockquote><pre><code class='language-python' lang='python'>#接受消息
+#!/usr/bin/env python
+import pika
+import sys
+
+connection = pika.BlockingConnection(
+ pika.ConnectionParameters(host=&#39;localhost&#39;))
+channel = connection.channel()
+
+channel.exchange_declare(exchange=&#39;direct_logs&#39;, exchange_type=&#39;direct&#39;)
+
+result = channel.queue_declare(queue=&#39;&#39;, exclusive=True)
+queue_name = result.method.queue
+
+severities = sys.argv[1:]
+if not severities:
+ sys.stderr.write(&quot;Usage: %s [info] [warning] [error]\n&quot; % sys.argv[0])
+ sys.exit(1)
+
+for severity in severities:
+ channel.queue_bind(
+     exchange=&#39;direct_logs&#39;, queue=queue_name, routing_key=severity)
+
+print(&#39; [*] Waiting for logs. To exit press CTRL+C&#39;)
+
+
+def callback(ch, method, properties, body):
+ print(&quot; [x] %r:%r&quot; % (method.routing_key, body))
+
+
+channel.basic_consume(
+ queue=queue_name, on_message_callback=callback, auto_ack=True)
+
+channel.start_consuming()
+</code></pre>
+</blockquote>
+<h4>5.3.5 消息主题 Topics</h4>
+<ul>
+<li><p>是支持路由的交换机的一种，支持routingkey中带有*和#两个单词</p>
+<ul>
+<li><img src="C:\Users\yuhang\Desktop\AIprogram\image-20200317084528742.png" referrerpolicy="no-referrer" alt="image-20200317084528742"></li>
+<li>使用topic交换机，合法的routing key可以使用通配符</li>
+
+</ul>
+<p>&nbsp;</p>
+</li>
+
+</ul>
+<h4>5.3.6 远程过程调用 RPC</h4>
+<p><img src="image-20200315234949679.png" referrerpolicy="no-referrer" alt="image-20200315234949679"></p>
+<p>&nbsp;</p>
+<p><img src="image-20200315235154897.png" referrerpolicy="no-referrer" alt="image-20200315235154897"></p>
+<ul>
+<li><p>server代码</p>
+<ul>
+<li>提供斐波那契函数计算服务，斐波那契是生物界普遍存在的生长规律，斐波那契与黄金分割被称为最伟大的两个数学现象。</li>
+<li><img src="image-20200316070928056.png" referrerpolicy="no-referrer" alt="image-20200316070928056"></li>
+
+</ul>
+<pre><code class='language-python' lang='python'>#!/usr/bin/env python
+import pika
+
+connection = pika.BlockingConnection(
+    pika.ConnectionParameters(host=&#39;localhost&#39;))
+
+channel = connection.channel()
+
+channel.queue_declare(queue=&#39;rpc_queue&#39;)
+
+def fib(n):
+    if n == 0:
+        return 0
+    elif n == 1:
+        return 1
+    else:
+        return fib(n - 1) + fib(n - 2)
+
+def on_request(ch, method, props, body):
+    n = int(body)
+
+    print(&quot; [.] fib(%s)&quot; % n)
+    response = fib(n)
+
+    ch.basic_publish(exchange=&#39;&#39;,
+                     routing_key=props.reply_to,
+                     properties=pika.BasicProperties(correlation_id = \
+                                                         props.correlation_id),
+                     body=str(response))
+    ch.basic_ack(delivery_tag=method.delivery_tag)
+
+channel.basic_qos(prefetch_count=1)
+channel.basic_consume(queue=&#39;rpc_queue&#39;, on_message_callback=on_request)
+
+print(&quot; [x] Awaiting RPC requests&quot;)
+channel.start_consuming()
+</code></pre>
+<p>			 </p>
+</li>
+<li><p>client代码</p>
+<p>&nbsp;</p>
+<pre><code class='language-python' lang='python'>#!/usr/bin/env python
+import pika
+import uuid
+
+class FibonacciRpcClient(object):
+
+    def __init__(self):
+        self.connection = pika.BlockingConnection(
+            pika.ConnectionParameters(host=&#39;localhost&#39;))
+
+        self.channel = self.connection.channel()
+
+        result = self.channel.queue_declare(queue=&#39;&#39;, exclusive=True)
+        self.callback_queue = result.method.queue
+
+        self.channel.basic_consume(
+            queue=self.callback_queue,
+            on_message_callback=self.on_response,
+            auto_ack=True)
+
+    def on_response(self, ch, method, props, body):
+        if self.corr_id == props.correlation_id:
+            self.response = body
+
+    def call(self, n):
+        self.response = None
+        self.corr_id = str(uuid.uuid4())
+        self.channel.basic_publish(
+            exchange=&#39;&#39;,
+            routing_key=&#39;rpc_queue&#39;,
+            properties=pika.BasicProperties(
+                reply_to=self.callback_queue,
+                correlation_id=self.corr_id,
+            ),
+            body=str(n))
+        while self.response is None:
+            self.connection.process_data_events()
+        return int(self.response)
+
+
+fibonacci_rpc = FibonacciRpcClient()
+
+print(&quot; [x] Requesting fib(30)&quot;)
+response = fibonacci_rpc.call(30)
+print(&quot; [.] Got %r&quot; % response)
+</code></pre>
+<p>&nbsp;</p>
+</li>
+
+</ul>
+<h4>5.3.7 消息发布确认</h4>
+<p>		</p>
+<pre><code class='language-java' lang='java'>Channel channel = connection.createChannel();
+channel.confirmSelect();
+</code></pre>
+<pre><code class='language-java' lang='java'>//发送100条消息
+String msgs[]=new String[100];int i=-1;
+while (i++&lt;msgs.length()) {
+    byte[] body = ...;
+    BasicProperties properties = ...;
+    channel.basicPublish(exchange, queue, properties, body);
+    // uses a 5 second timeout
+    channel.waitForConfirmsOrDie(5_000);//等待发送成功确认；否则抛出异常
+}
+</code></pre>
+<h4>5.3.7 延时消息</h4>
+<p>&nbsp;</p>
+<blockquote><p>限时优惠卷，结合多层延时，实现先提醒、再删除这些优惠卷</p>
+</blockquote>
+<p>&nbsp;</p>
+<ul>
+<li><p>利用死信消息、结合队列的下列两个参数</p>
+<ul>
+<li><strong>Dead letter exchange</strong> </li>
+<li><strong>Dead letter routing key</strong></li>
+
+</ul>
+</li>
+<li><p>死信的产生途径</p>
+<ul>
+<li><p>classic queue</p>
+<ul>
+<li><strong>Message TTL</strong>    发布到队列的消息在被丢弃之前的生存时间（毫秒）</li>
+
+</ul>
+</li>
+<li><p>quorum queue</p>
+<ul>
+<li><strong>Delivery limit</strong>  被拒绝或nack投递次数，达到后成为死信</li>
+
+</ul>
+</li>
+
+</ul>
+</li>
+<li><p>使用management  inteface 进行操作演示，观测效果</p>
+</li>
+
+</ul>
+<h2>6. RabbitMQ集群</h2>
+<p>集群是多个组合成一个“互助”的整体，集群可获得HA、扩容、增加吞吐量等对外特性</p>
+<p>&nbsp;</p>
+<h4>6.1 搭建集群的必要条件：组建局域网</h4>
+<ul>
+<li><p>组建传统局域网，同步通讯密钥</p>
+<p><img src="image-20200319085553170.png" alt="image-20200319085553170" style="zoom:80%;" /></p>
+</li>
+<li><p>组建Docker 局域网 </p>
+<p><img src="image-20200319083424393.png" alt="image-20200319083424393" style="zoom: 80%;" /></p>
+<blockquote><p><strong>docker网络的搭建步骤</strong> (共4步)</p>
+<ol start='' >
+<li><p>建立docker网络 </p>
+<p>docker network create --driver bridge --subnet=172.18.12.0/24 --gateway=172.18.12.1 mynet</p>
+<p>看一下结果：docker network inspect mynet  </p>
+</li>
+<li><p>启动rabbitmq容器加入docker网络</p>
+<p>docker run -itd -h rabbit001 --name rabbit001 --network mynet -e RABBITMQ_ERLANG_COOKIE=&quot;rabbitmqCookie&quot; -p 15672:15672 -p 5672:5672  --ip 172.18.12.2 --rm rabbitmq:3-management
+docker run -itd -h rabbit002 --name rabbit002 --network mynet -e RABBITMQ_ERLANG_COOKIE=&quot;rabbitmqCookie&quot; -p 15673:15672 -p 5673:5672  --ip 172.18.12.3 --rm rabbitmq:3-management
+docker run -itd -h rabbit003 --name rabbit003 --network mynet -e RABBITMQ_ERLANG_COOKIE=&quot;rabbitmqCookie&quot; -p 15674:15672 -p 5674:5672  --ip 172.18.12.4 --rm  rabbitmq:3-management</p>
+</li>
+
+</ol>
+</blockquote>
+</li>
+
+</ul>
+<p>&nbsp;</p>
+<h4>6.2 把节点加入RabbitMQ集群（实验）</h4>
+<h5>6.2.1使用三个节点组建rabbitmq集群</h5>
+<p><strong>1. 使用docker exec -it rabbit001 bash 进入 rabbit001容器 ，依次执行如下命令：</strong></p>
+<blockquote><p>rabbitmqctl stop_app</p>
+<p>rabbitmqctl reset</p>
+<p>rabbitmqctl start_app</p>
+<p>rabbitmqctl cluster_status</p>
+</blockquote>
+<p><strong>2. 使用docker exec -it rabbit002 bash 进入 rabbit002容器 ，依次执行如下命令：</strong></p>
+<blockquote><p>rabbitmqctl stop_app</p>
+<p>rabbitmqctl reset</p>
+<p>rabbitmqctl join_cluster rabbit@rabbit001</p>
+<p>rabbitmqctl start_app</p>
+<p>rabbitmqctl cluster_status</p>
+</blockquote>
+<p><strong>3. 使用docker exec -it rabbit003 bash 进入 rabbit003容器 ，依次执行如下命令：</strong></p>
+<blockquote><p>rabbitmqctl stop_app</p>
+<p>rabbitmqctl reset</p>
+<p>rabbitmqctl join_cluster rabbit@rabbit001  或者rabbitmqctl join_cluster rabbit@rabbit002  </p>
+<p>rabbitmqctl start_app</p>
+<p>rabbitmqctl cluster_status</p>
+</blockquote>
+<p>至此，集群搭建完毕。如果想利用集群得到HA能力，则</p>
+<h5>6.2.2 测试网络</h5>
+<blockquote><p>	通过ping命令，测试主机名和ip是否能够在网络上正常互联</p>
+</blockquote>
+<h5>6.2.3 在集群中使用队列</h5>
+<p>&nbsp;</p>
+<h6>6.2.3.1 元数据复制</h6>
+<p><strong>在集群中建立classis队列</strong></p>
+<p>		在rabbit003上建立名字为003的classic队列，然后stop它，观测队列是否可用之后，再恢复它。stop的观测结果如下图。故障期间，003队列无法使用。</p>
+<p>&nbsp;</p>
+<p><img src="image-20200319152257677.png" referrerpolicy="no-referrer" alt="image-20200319152257677"></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h6>6.2.3.2 仲裁队列</h6>
+<p><strong>B. 在集群中使用quorum队列,构成仲裁集群</strong></p>
+<p>在rabbit003上建立名字为we的quorum队列，然后stop它，观测队列可用行之后，再恢复节点。stop的观测结果如下图，rabbit003上的we被仲裁到rabbit002上，如同原本就存在于此。一个节点的故障恢复发生时和恢复之后，对使用者并无影响。</p>
+<p><img src="image-20200319170704255.png" referrerpolicy="no-referrer" alt="image-20200319170704255"></p>
+<h6>6.2.3.3 配置队列镜像**</h6>
+<p><strong>方法一</strong>：使用rabbitmqctl </p>
+<p><strong>方法二</strong>：使用RabbitMQ的webUI创建Policies，配置下图属性。</p>
+<p>	<img src="image-20200320210633377.png" referrerpolicy="no-referrer" alt="image-20200320210633377"></p>
+<p><strong><em>备注：</em></strong></p>
+<p><strong>ha-mode 参数</strong>：One of <code>all</code> (mirror to all nodes in the cluster), <code>exactly</code> (mirror to a set number of nodes) or <code>nodes</code> (mirror to an explicit list of nodes). If you choose one of the latter two, you must also set <code>ha-params</code>. </p>
+<p><strong>pattern参数</strong>：正则表达式，用于按名称匹配Exchanges和quques 。</p>
+<p>点击上图中的“？”号，得到参数说明。</p>
+<p>&nbsp;</p>
+<h5>6.2.4 故障恢复</h5>
+<ul>
+<li>节点down之后，重新up 。</li>
+<li>节点存储设备报废，无法恢复。</li>
+
+</ul>
+<h5>6.2.5 总结</h5>
+<blockquote><p><strong>quorum集群，指其上运行quorum队列，工程中的首选</strong></p>
+<p>元数据集群，指其上运行classic队列</p>
+<p>镜像队列集群，指指其上运行classic队列，且手工配置队列的镜像，与一般的主从复制雷同。</p>
+</blockquote>
+<figure><table>
+<thead>
+<tr><th>使用如下队列的RabbitMQ集群</th><th>扩容</th><th>增加吞吐量</th><th>HA</th><th>易用性</th><th>故障容错</th></tr></thead>
+<tbody><tr><td>quorum队列</td><td>√</td><td>√</td><td>√</td><td>高</td><td>√</td></tr><tr><td>classic队列</td><td>√</td><td>√</td><td>×</td><td>高</td><td>×</td></tr><tr><td>classic队列+HA策略</td><td>√</td><td>√</td><td>中等</td><td>低</td><td>中等</td></tr></tbody>
+</table></figure>
+<p>&nbsp;</p>
+<h2>7. 消息队列综合案例分析</h2>
+<ul>
+<li><p>深交行城市主机之ATM核心业务交易系统突发性高并发设计（图）</p>
+<p><img src="image-20200330092600860.png" referrerpolicy="no-referrer" alt="image-20200330092600860"></p>
+</li>
+<li><p>spring boot 集成RabbitMQ</p>
+<p>&nbsp;</p>
+</li>
+
+</ul>
+<h2>8. 总结</h2>
+<p>两步走：</p>
+<ol start='' >
+<li>RabbitMQ原理</li>
+<li>RbbitMQ应用</li>
+
+</ol>
+<p>&nbsp;</p>
+<p><img src="C:\Users\yuhang\Desktop\AIprogram - backup\image-20200315224044224.png" alt="hh" style="zoom:67%;width:10cm;transform: translate(0cm,2cm) rotate(30deg); -webkit-transition:width 20s;width:100px;
+transition: width 2s;
+-moz-transition: width 20s; /* Firefox 4 */
+-webkit-transition: width 2s; /* Safari 和 Chrome */
+-o-transition: width 2s; /* Opera */" /></p>
+</body>
+</html>

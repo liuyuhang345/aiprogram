@@ -29,7 +29,7 @@
 
     > ​	In the vast majority of cases you want all your nodes to be disk nodes; RAM nodes are a special case that can be used to improve the performance clusters with high queue, exchange, or binding churn. RAM nodes do not provide higher message rates. When in doubt, use disk nodes only.
     >
-    > 上述是官网的一段叙述，意思是说，RAM节点并不会提供更好的性能，使用磁盘几点就好了。
+    > 上述是官网的一段叙述，意思是说，RAM节点并不会提供更好的性能，使用磁盘节点就好了。
 
 - 队列（FIFO）
   
@@ -223,7 +223,7 @@ RabbitMQ软件的基于web的GUI操作界面，能够完成消息队列的绝大
   channel.basic_publish(exchange='logs',
                         routing_key='',
                         body=message)
-  #通过exchange定位消息到达的队列，不指定具体队列和rkey
+  #通过exchange定位消息到达的队列，不指定具体队列和routingKey
   ```
   
 - 临时队列
@@ -664,8 +664,47 @@ while (i++<msgs.length()) {
 
 - 深交行城市主机之ATM核心业务交易系统突发性高并发设计（图）
 
-- spring boot 集成RabbitMQ
+  - 一年当中，某几天或偶尔儿发生的高并发。一般不通过硬件进行实现，当偶尔变为频繁之后，需要提升硬件，
+
+  ![image-20200330092600860](image-20200330092600860.png)
 
   
 
+### 7.1 spring boot 集成RabbitMQ
+
+pom依赖
+
+```xml
+<dependency> 
+	<groupId>org.springframework.boot</groupId> 
+	<artifactId>spring-boot-starter-amqp</artifactId> 
+</dependency>
+```
+
+
+
+```spring boot properties
+spring.rabbitmq.host=
+spring.rabbitmq.port=
+spring.rabbitmq.username=
+spring.rabbitmq.password=
+spring.rabbitmq.virtual-host=
+#每次从队列中取一个,轮询分发，默认是公平分发
+spring.rabbitmq.listener.simple.prefetch=1
+#失败是否重试
+spring.rabbitmq.listener.simple.default-requeue-rejected=true
+#失败后重试的次数
+spring.rabbitmq.listener.simple.retry.max-attempts=5
+
+```
+
+
+
 ## 8. 总结
+
+两步走：
+
+1. RabbitMQ原理
+2. RabbitMQ  API
+3. RbbitMQ应用
+
