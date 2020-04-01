@@ -672,7 +672,7 @@ while (i++<msgs.length()) {
 
 ### 7.1 spring boot 集成RabbitMQ
 
-pom依赖
+#### 7.1 **pom依赖**
 
 ```xml
 <dependency> 
@@ -681,9 +681,9 @@ pom依赖
 </dependency>
 ```
 
+#### **7.2 spring boot 配置**
 
-
-```spring boot properties
+```properties
 spring.rabbitmq.host=
 spring.rabbitmq.port=
 spring.rabbitmq.username=
@@ -698,6 +698,140 @@ spring.rabbitmq.listener.simple.retry.max-attempts=5
 
 ```
 
+#### 7.3 增加负载均衡器 haproxy
+
+​	安装haproxy主机，对其配置文件haproxy.cnf ，增加如下配置，实现负载均衡 。
+
+```properties
+#对MQ集群进行监听，实现负载均衡
+listen rabbitmq_cluster
+        bind 0.0.0.0:5680       #通过5680端口访问反向代理服务
+        timeout connect 60s     #haproxy与mq建立连接的超时时间
+        timeout client 60s      #客户端与haproxy最大空闲时间
+        timeout server 60s      #服务器与haproxy最大空闲时间
+
+        #下面三个rabbitmq节点
+        server node1 172.18.12.2:5672 maxconn 32
+        server node2 172.18.12.3:5673 maxconn 32
+        server node3 172.18.12.4:5674 maxconn 32
+
+#暴漏http监控UI ，访问http://49.232.87.91:8080/admin?stats
+listen admin_stats
+        stats   enable
+        bind    *:8080          #听的ip端口号
+        mode    http            #仅仅监听http协议
+        option  httplog
+        log     global
+        maxconn 10
+        stats   refresh 30s             #统计页面自动刷新时间
+        stats   uri /admin?stats        #访问的uri   ip:8080/admin
+        stats   realm haproxy
+        stats   auth admin:admin        #认证用户名和密码
+        stats   hide-version            #隐藏HAProxy的版本号
+        stats   admin if TRUE           #管理界面，如果认证成功了，可通过webui管理节点
+                    
+```
+
+#### 7.4 **建立 RabbitMQ 组件元素**
+
+准备工作是指队列、绑定、交换机、主机、策略的创建，有两种方式。
+
+1. **HTTP API**
+
+   ​		工程中，使用RabbitMQ 的 HTTP API 进行队列、绑定、交换机、主机、策略的创建，生产力较高。可以将之做成linux脚本实现批执行。
+
+   ![image-20200331111957033](image-20200331111957033.png)
+
+2. **java Bean**
+
+   ```java
+   /**
+    * 通过配置Bean封装队列、绑定、交换机、主机、策略的创建
+    * 工程中，使用RabbitMQ 的 HTTP API 进行队列、绑定、交换机、主机、策略的创建，生产力较高。
+    */
+   @Configuration
+   class DirectRabbitConfig {
+       //队列：ATMLogDirectQueue
+       @Bean
+       public Queue ATMLogDirectQueue() {
+           return new org.springframework.amqp.core.Queue("ATMLogDirectQueue", true);  //true 是否持久
+       }
+       /**
+        * Direct交换机 ：ATMLogDirectExchange
+        * @return
+        */
+       @Bean
+       DirectExchange ATMLogDirectExchange() {
+           return new DirectExchange("ATMLogDirectExchange");
+       }
+   
+       /**
+        * 绑定  将队列和交换机绑定, 并设置用于匹配键：ATMLogDirectRouting
+        * @return
+        */
+       @Bean
+       Binding bindingDirect() {
+           return 		BindingBuilder.bind(ATMLogDirectQueue()).to(ATMLogDirectExchange()).with("log");
+       }
+   }
+   ```
+
+#### 7.5 **发送消息**
+
+```java
+java@Autowired
+private AmqpTemplate amqpTemplate;
+
+@PostMapping("/{data}")
+public Map<String,String> postMessageToRabbitMQ_CLUSTER(@PathVariable("data") String data){
+
+    HashMap<String,String> ret = new HashMap<>();
+    try {
+        amqpTemplate.convertAndSend("logs","",data);
+        ret.put("result","ack");
+    }catch (Exception e)
+    {
+        ret.put("result",e.getMessage());
+    }finally{
+        return ret;
+    }
+```
+
+**注意事项**
+
+修改springboot  rabbitmq 如下配置项
+
+```properties
+spring.rabbitmq.host=haproxy代理主机地址
+spring.rabbitmq.port=haproxy代理端口
+```
+
+
+
+#### 7.6 接收消息
+
+```java
+@Component
+class Receiver {
+    @RabbitListener(queues = "hello")//监听的队列名称
+    public void onMessage(Message message, Channel channel) throws Exception {
+        System.err.println("-------------------------------------");
+        System.err.println("消费消息体--->>" + new String(message.getBody()));
+        //保存到elasticSearch或mysql或其它持久组件
+       
+    }
+}
+```
+
+**注意事项**
+
+修改springboot  rabbitmq 如下配置项
+
+```properties
+spring.rabbitmq.host=rabbitmq 主机地址，可以是docker宿主机地址
+spring.rabbitmq.port=rabbitmq 端口，是对应的docker主机在宿主机上的映射端口
+```
+
 
 
 ## 8. 总结
@@ -705,6 +839,6 @@ spring.rabbitmq.listener.simple.retry.max-attempts=5
 两步走：
 
 1. RabbitMQ原理
-2. RabbitMQ  API
+2. RabbitMQ 管里界面和 HTTP  API 。
 3. RbbitMQ应用
 
