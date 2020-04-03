@@ -6,10 +6,79 @@
 
 刘宇航  tel : 13552727378 Email :  liuyuhang345@163.com
 
-<hr>
+
+
+<div id="rabbit">1</div> 
+<div id="body"></div>
+
+
+
+
+
+<style>
+    #body{
+    background: green;
+    width: 50vw;
+    height: 50vh;
+    left: 25vw;
+}
+    #body>div{
+    width: 5mm;
+    height: 5mm;
+    background: red;
+    animation: go 5s forwards;
+}
+    @keyframes go {
+    from{}
+to{
+    transform: translate3d(10cm,0cm,0cm);
+}
+</style>   
+
+
+<script   src="https://code.jquery.com/jquery-3.4.1.min.js"   integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="   crossorigin="anonymous"></script>
+
+<input id="in">
+
+<script>
+            $(function() {
+            $("#in").on('change', function () {
+                    for (i = 1; i < 5; i++) {
+                        m = $("#rabbit").clone();
+                        $("#body").append(m);
+                    }
+                window.setTimeout(clear,5000);
+                }
+                )
+            }
+        )
+     window.setTimeout(clear,5000)
+        function clear(){
+            $("#body div").remove();
+        }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<hr/> 
+
+
+
 ## 1. 消息队列概念
 
-动画小故事引入队列概念......
+
+小故事：水库在河流涨水时的作用，引入队列概念。
 
 ![image-20200328080833731](image-20200328080833731.png)
 
@@ -664,9 +733,11 @@ while (i++<msgs.length()) {
 
 - 深交行城市主机之ATM核心业务交易系统突发性高并发设计（图）
 
-  - 一年当中，某几天或偶尔儿发生的高并发。一般不通过硬件进行实现，当偶尔变为频繁之后，需要提升硬件，
+  - 一年当中，某几天或偶尔儿发生的高并发。一般不通过硬件进行实现，当偶尔变为频繁之后，需要提升硬件。
+- 在IBM小型机和卫星机之间、卫星机与柜员机之间的服务器端，采用消息队列，兼容突发性高并发交易场景。
+  
 
-  ![image-20200330092600860](image-20200330092600860.png)
+![image-20200330092600860](image-20200330092600860.png)
 
   
 
@@ -691,9 +762,9 @@ spring.rabbitmq.password=
 spring.rabbitmq.virtual-host=
 #每次从队列中取一个,轮询分发，默认是公平分发
 spring.rabbitmq.listener.simple.prefetch=1
-#失败是否重试
+#消费者程序异常时，是否把消息重新放入队列
 spring.rabbitmq.listener.simple.default-requeue-rejected=true
-#失败后重试的次数
+#失败重放入次数，到达后，此消息变为死信：默认移除队列，可设置死信转入的目标队列
 spring.rabbitmq.listener.simple.retry.max-attempts=5
 
 ```
@@ -736,13 +807,13 @@ listen admin_stats
 
 准备工作是指队列、绑定、交换机、主机、策略的创建，有两种方式。
 
-1. **HTTP API**
+1. **方式一：HTTP API**
 
    ​		工程中，使用RabbitMQ 的 HTTP API 进行队列、绑定、交换机、主机、策略的创建，生产力较高。可以将之做成linux脚本实现批执行。
 
    ![image-20200331111957033](image-20200331111957033.png)
 
-2. **java Bean**
+2. **方式二：java Bean**
 
    ```java
    /**
@@ -779,7 +850,7 @@ listen admin_stats
 #### 7.5 **发送消息**
 
 ```java
-java@Autowired
+@Autowired
 private AmqpTemplate amqpTemplate;
 
 @PostMapping("/{data}")
@@ -828,7 +899,7 @@ class Receiver {
 修改springboot  rabbitmq 如下配置项
 
 ```properties
-spring.rabbitmq.host=rabbitmq 主机地址，可以是docker宿主机地址
+spring.rabbitmq.host=rabbitmq 主机地址，可以是docker宿主机地址，通常不设置为HA-proxy主机地址（因为比较繁琐和不易控）
 spring.rabbitmq.port=rabbitmq 端口，是对应的docker主机在宿主机上的映射端口
 ```
 
@@ -838,7 +909,7 @@ spring.rabbitmq.port=rabbitmq 端口，是对应的docker主机在宿主机上�
 
 两步走：
 
-1. RabbitMQ原理
-2. RabbitMQ 管里界面和 HTTP  API 。
+1. RabbitMQ原理（基于官网文档）
+2. RabbitMQ 管里界面和 HTTP  API （基于官网文档） 。
 3. RbbitMQ应用
 
