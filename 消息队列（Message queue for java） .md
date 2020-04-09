@@ -607,15 +607,21 @@ while (i++<msgs.length()) {
   >
   > 1. 建立docker网络 
   >
+  >    ```bash
   >    docker network create --driver bridge --subnet=172.18.12.0/24 --gateway=172.18.12.1 mynet
+  >    ```
   >
   >    看一下结果：docker network inspect mynet  
   >
   > 2. 启动rabbitmq容器加入docker网络
   >
+  >    ```bash
   >    docker run -itd -h rabbit001 --name rabbit001 --network mynet -e RABBITMQ_ERLANG_COOKIE="rabbitmqCookie" -p 15672:15672 -p 5672:5672  --ip 172.18.12.2 --rm rabbitmq:3-management
   >    docker run -itd -h rabbit002 --name rabbit002 --network mynet -e RABBITMQ_ERLANG_COOKIE="rabbitmqCookie" -p 15673:15672 -p 5673:5672  --ip 172.18.12.3 --rm rabbitmq:3-management
   >    docker run -itd -h rabbit003 --name rabbit003 --network mynet -e RABBITMQ_ERLANG_COOKIE="rabbitmqCookie" -p 15674:15672 -p 5674:5672  --ip 172.18.12.4 --rm  rabbitmq:3-management
+  >    ```
+  >    
+  >    
 
 
 
@@ -626,39 +632,69 @@ while (i++<msgs.length()) {
 
 **1. 使用docker exec -it rabbit001 bash 进入 rabbit001容器 ，依次执行如下命令：**
 
+> ```bash
 > rabbitmqctl stop_app
->
+> 
 > rabbitmqctl reset
->
+> 
 > rabbitmqctl start_app
->
+> 
 > rabbitmqctl cluster_status
+> ```
 
 **2. 使用docker exec -it rabbit002 bash 进入 rabbit002容器 ，依次执行如下命令：**
 
+> ```bash
 > rabbitmqctl stop_app
->
+> 
 > rabbitmqctl reset
->
+> 
 > rabbitmqctl join_cluster rabbit@rabbit001
->
+> 
 > rabbitmqctl start_app
->
+> 
 > rabbitmqctl cluster_status
+> ```
+>
+> 
 
 **3. 使用docker exec -it rabbit003 bash 进入 rabbit003容器 ，依次执行如下命令：**
 
+> ```bash
 > rabbitmqctl stop_app
->
+> 
 > rabbitmqctl reset
->
+> 
 > rabbitmqctl join_cluster rabbit@rabbit001  或者rabbitmqctl join_cluster rabbit@rabbit002  
->
+> 
 > rabbitmqctl start_app
->
+> 
 > rabbitmqctl cluster_status
+> ```
 
-至此，集群搭建完毕。如果想利用集群得到HA能力，则
+至此，集群搭建完毕。如果想利用集群得到HA能力，则参见本文档 7.3节。
+
+附录：加入集群的linux bash脚本
+
+```bash
+ubuntu@VM-0-2-ubuntu:~$ cat rabbitmq_join_cluster 
+sudo docker exec -it rabbit001 rabbitmqctl stop_app
+sudo docker exec -it rabbit001 rabbitmqctl reset
+sudo docker exec -it rabbit001 rabbitmqctl start_app
+
+
+sudo docker exec -it rabbit002 rabbitmqctl stop_app
+sudo docker exec -it rabbit002 rabbitmqctl reset
+sudo docker exec -it rabbit002 rabbitmqctl join_cluster rabbit@rabbit001
+sudo docker exec -it rabbit002 rabbitmqctl start_app
+
+sudo docker exec -it rabbit003 rabbitmqctl stop_app
+sudo docker exec -it rabbit003 rabbitmqctl reset
+sudo docker exec -it rabbit003 rabbitmqctl join_cluster rabbit@rabbit001
+sudo docker exec -it rabbit003 rabbitmqctl start_app
+```
+
+
 
 ##### 6.2.2 测试网络
 
